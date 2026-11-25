@@ -8,7 +8,16 @@ import {
   uid,
 } from './data'
 import { clampScore, loadState, saveState, scoreTone } from './storage'
-import type { AppState, Confession, DisciplineEntry, Intensity, Order, Rule, Screen } from './types'
+import type {
+  AppState,
+  Confession,
+  DisciplineEntry,
+  Intensity,
+  Ongoing,
+  Order,
+  Rule,
+  Screen,
+} from './types'
 
 function ensureDailyOrders(state: AppState): AppState {
   const today = todayISO()
@@ -85,6 +94,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [flashId, setFlashId] = useState<string | null>(null)
   const [draftRule, setDraftRule] = useState('')
+  const [draftOngoing, setDraftOngoing] = useState('')
   const [draftConfession, setDraftConfession] = useState('')
   const [oathName, setOathName] = useState('')
   const [oathIntensity, setOathIntensity] = useState<Intensity>('ferme')
@@ -99,6 +109,14 @@ export default function App() {
     [state.orders, today],
   )
   const pendingDiscipline = state.disciplines.filter((d) => !d.done)
+  const pendingOngoing = useMemo(
+    () => state.ongoing.filter((o) => !o.done),
+    [state.ongoing],
+  )
+  const doneOngoing = useMemo(
+    () => state.ongoing.filter((o) => o.done),
+    [state.ongoing],
+  )
   const doneToday = todaysOrders.filter((o) => o.done).length
   const tone = scoreTone(state.score)
 
@@ -183,6 +201,49 @@ export default function App() {
     patch((s) => ({
       ...s,
       rules: s.rules.filter((r) => r.id !== id || r.locked),
+    }))
+  }
+
+  function addOngoing() {
+    const text = draftOngoing.trim()
+    if (!text) return
+    const entry: Ongoing = {
+      id: uid('ong'),
+      text,
+      done: false,
+      createdAt: new Date().toISOString(),
+      doneAt: null,
+    }
+    patch((s) => ({
+      ...s,
+      ongoing: [entry, ...s.ongoing].slice(0, 40),
+    }))
+    setDraftOngoing('')
+  }
+
+  function completeOngoing(id: string) {
+    patch((s) => ({
+      ...s,
+      ongoing: s.ongoing.map((o) =>
+        o.id === id ? { ...o, done: true, doneAt: new Date().toISOString() } : o,
+      ),
+      score: clampScore(s.score + 2),
+    }))
+  }
+
+  function reopenOngoing(id: string) {
+    patch((s) => ({
+      ...s,
+      ongoing: s.ongoing.map((o) =>
+        o.id === id ? { ...o, done: false, doneAt: null } : o,
+      ),
+    }))
+  }
+
+  function removeOngoing(id: string) {
+    patch((s) => ({
+      ...s,
+      ongoing: s.ongoing.filter((o) => o.id !== id),
     }))
   }
 
@@ -323,6 +384,30 @@ export default function App() {
           )}
 
           <div className="section-title">
+            <h2>En cours</h2>
+            <span>{pendingOngoing.length} ouvert{pendingOngoing.length === 1 ? '' : 's'}</span>
+          </div>
+          {pendingOngoing.length === 0 ? (
+            <p className="hint">Rien d’ouvert. Ajoute une tâche longue dans l’onglet En cours.</p>
+          ) : (
+            <div className="card-list">
+              {pendingOngoing.slice(0, 3).map((o) => (
+                <OngoingRow
+                  key={o.id}
+                  item={o}
+                  onDone={() => completeOngoing(o.id)}
+                  onRemove={() => removeOngoing(o.id)}
+                />
+              ))}
+            </div>
+          )}
+          {pendingOngoing.length > 3 && (
+            <p className="hint" style={{ marginTop: 10 }}>
+              +{pendingOngoing.length - 3} autres dans l’onglet En cours.
+            </p>
+          )}
+
+          <div className="section-title">
             <h2>Ordres du jour</h2>
             <span>{today}</span>
           </div>
@@ -344,6 +429,80 @@ export default function App() {
           )}
 
           <p className="quote">« Tant que tu restes, tu obéis. »</p>
+        </div>
+      )}
+
+      {screen === 'encours' && (
+        <div className="screen" key="encours">
+          <div className="topbar">
+            <div className="brand">En cours</div>
+            <div className="meta">{pendingOngoing.length} ouvert{pendingOngoing.length === 1 ? '' : 's'}</div>
+          </div>
+          <p className="hint">
+            Tâches qui dépassent la journée. Elles restent jusqu’à ce que tu les boucles.
+          </p>
+          <div className="composer">
+            <textarea
+              value={draftOngoing}
+              onChange={(e) => setDraftOngoing(e.target.value)}
+              placeholder="Ex. : finir le dossier, tenir 7 jours sans…, ranger le garage…"
+              maxLength={280}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!draftOngoing.trim()}
+              onClick={addOngoing}
+            >
+              Ajouter
+            </button>
+          </div>
+          <div className="card-list" style={{ marginTop: 16 }}>
+            {pendingOngoing.length === 0 && (
+              <div className="empty">Aucun élément en cours. Pose-en un.</div>
+            )}
+            {pendingOngoing.map((o) => (
+              <OngoingRow
+                key={o.id}
+                item={o}
+                onDone={() => completeOngoing(o.id)}
+                onRemove={() => removeOngoing(o.id)}
+              />
+            ))}
+          </div>
+          {doneOngoing.length > 0 && (
+            <>
+              <div className="section-title" style={{ marginTop: 28 }}>
+                <h2>Terminés</h2>
+                <span>{doneOngoing.length}</span>
+              </div>
+              <div className="card-list">
+                {doneOngoing.slice(0, 12).map((o) => (
+                  <div key={o.id} className="item done">
+                    <div className="check">✓</div>
+                    <div className="item-body">
+                      <div className="cat">
+                        {o.doneAt ? `Clos · ${formatWhen(o.doneAt)}` : 'Clos'}
+                      </div>
+                      <p>{o.text}</p>
+                    </div>
+                    <div className="item-actions">
+                      <button type="button" className="mini" onClick={() => reopenOngoing(o.id)}>
+                        Rouvrir
+                      </button>
+                      <button
+                        type="button"
+                        className="mini danger"
+                        onClick={() => removeOngoing(o.id)}
+                      >
+                        Effacer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -474,11 +633,12 @@ export default function App() {
         </div>
       )}
 
-      <nav className="nav" aria-label="Navigation">
+      <nav className="nav nav-6" aria-label="Navigation">
         {(
           [
             ['home', 'Accueil'],
             ['ordres', 'Ordres'],
+            ['encours', 'Cours'],
             ['regles', 'Règles'],
             ['confession', 'Journal'],
             ['discipline', 'Peines'],
@@ -492,9 +652,42 @@ export default function App() {
           >
             <span className="dot" />
             {label}
+            {id === 'encours' && pendingOngoing.length > 0 ? (
+              <span className="nav-badge" aria-hidden>
+                {pendingOngoing.length}
+              </span>
+            ) : null}
           </button>
         ))}
       </nav>
+    </div>
+  )
+}
+
+function OngoingRow({
+  item,
+  onDone,
+  onRemove,
+}: {
+  item: Ongoing
+  onDone: () => void
+  onRemove: () => void
+}) {
+  return (
+    <div className="item">
+      <button type="button" className="check" aria-label="Marquer comme terminé" onClick={onDone} />
+      <div className="item-body">
+        <div className="cat">Depuis {formatWhen(item.createdAt)}</div>
+        <p>{item.text}</p>
+      </div>
+      <div className="item-actions">
+        <button type="button" className="mini" onClick={onDone}>
+          Terminé
+        </button>
+        <button type="button" className="mini danger" onClick={onRemove}>
+          Retirer
+        </button>
+      </div>
     </div>
   )
 }

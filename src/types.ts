@@ -1,6 +1,6 @@
 export type Intensity = 'doux' | 'ferme' | 'strict'
 
-export type Screen = 'home' | 'ordres' | 'regles' | 'confession' | 'discipline'
+export type Screen = 'home' | 'ordres' | 'encours' | 'regles' | 'confession' | 'discipline'
 
 export interface Rule {
   id: string
@@ -16,6 +16,14 @@ export interface Order {
   done: boolean
   failed: boolean
   date: string
+}
+
+export interface Ongoing {
+  id: string
+  text: string
+  done: boolean
+  createdAt: string
+  doneAt: string | null
 }
 
 export interface Confession {
@@ -42,6 +50,7 @@ export interface AppState {
   lastActiveDate: string | null
   rules: Rule[]
   orders: Order[]
+  ongoing: Ongoing[]
   confessions: Confession[]
   disciplines: DisciplineEntry[]
   totalCompleted: number

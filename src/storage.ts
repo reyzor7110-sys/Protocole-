@@ -19,6 +19,7 @@ export function createInitialState(): AppState {
       createdAt: now,
     })),
     orders: [],
+    ongoing: [],
     confessions: [],
     disciplines: [],
     totalCompleted: 0,
@@ -30,8 +31,17 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return createInitialState()
-    const parsed = JSON.parse(raw) as AppState
-    return { ...createInitialState(), ...parsed }
+    const parsed = JSON.parse(raw) as Partial<AppState>
+    const base = createInitialState()
+    return {
+      ...base,
+      ...parsed,
+      rules: parsed.rules ?? base.rules,
+      orders: parsed.orders ?? base.orders,
+      ongoing: parsed.ongoing ?? base.ongoing,
+      confessions: parsed.confessions ?? base.confessions,
+      disciplines: parsed.disciplines ?? base.disciplines,
+    }
   } catch {
     return createInitialState()
   }

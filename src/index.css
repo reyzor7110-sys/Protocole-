@@ -606,7 +606,29 @@ h3,
   backdrop-filter: blur(10px);
 }
 
+.nav.nav-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--seal);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  letter-spacing: 0;
+}
+
 .nav button {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
