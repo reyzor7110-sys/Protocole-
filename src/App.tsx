@@ -488,7 +488,7 @@ export default function App() {
 
           {timerAlert && (
             <div className="banner banner-severe">
-              <strong>Timer</strong> — {timerAlert}
+              <span>{timerAlert}</span>
               <button type="button" className="mini" onClick={() => setTimerAlert(null)}>
                 OK
               </button>
@@ -638,7 +638,10 @@ export default function App() {
           </p>
           {timerAlert && (
             <div className="banner banner-severe">
-              <strong>Timer</strong> — {timerAlert}
+              <span>{timerAlert}</span>
+              <button type="button" className="mini" onClick={() => setTimerAlert(null)}>
+                OK
+              </button>
             </div>
           )}
           <div className="card-list">
