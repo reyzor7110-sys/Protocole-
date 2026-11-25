@@ -137,6 +137,48 @@ export function pickDiscipline(intensity: Intensity, seed: string): string {
   return list[Math.abs(hash(seed)) % list.length].text
 }
 
+/** Peines très dures quand le timer d’un ordre tombe à 0. */
+export const SEVERE_DISCIPLINE_POOL = [
+  'Peine timer : 45 minutes à genoux nu·e (ou semi), front au sol, chrono — zéro distraction.',
+  'Peine timer : interdiction totale de plaisir 48h. Tout edge = double peine.',
+  'Peine timer : 50 claques nettes (fesses/cuisses), comptées sale, puis corner 20 minutes.',
+  'Peine timer : couche forcée 6h + tétine ; toilettes interdites ; journal de chaque mouillage.',
+  'Peine timer : écrire 50 fois « J’ai laissé tomber le chrono. Je mérite d’être brisé·e. »',
+  'Peine timer : edge trash 15 minutes sans jouir, gros mots obligatoires, merci à genoux.',
+  'Peine timer : spit + humiliation miroir 10 minutes, puis 20 minutes cul exposé sans te toucher.',
+  'Peine timer : nuit sans orgasme + couvre-feu -2h + confession de 20 lignes minimum.',
+  'Peine timer : ramper 15 minutes avec tétine, aboyer/geindre 20 fois, front au sol 10 minutes.',
+  'Peine timer : te traiter de putain de raté·e 5 minutes face caméra (privé), puis te punir 30 claques.',
+]
+
+export function pickSevereDiscipline(seed: string): string {
+  return SEVERE_DISCIPLINE_POOL[Math.abs(hash(seed)) % SEVERE_DISCIPLINE_POOL.length]
+}
+
+/** Durée de base du timer (minutes) selon l’intensité. */
+export const ORDER_TIMER_MINUTES: Record<Intensity, number> = {
+  doux: 180,
+  ferme: 120,
+  strict: 75,
+}
+
+export function orderDeadlineAt(intensity: Intensity, index: number, from = Date.now()): string {
+  const base = ORDER_TIMER_MINUTES[intensity]
+  const stagger = index * 12
+  return new Date(from + (base + stagger) * 60_000).toISOString()
+}
+
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 export const SERMENT_TEXT = `Je m’engage volontairement sous PROTOCOLE.
 Je choisis l’obéissance, l’humiliation et la correction comme discipline.
 Mon plaisir n’est pas un droit : c’est une faveur qu’on peut refuser.
@@ -162,7 +204,7 @@ export function intensityHint(i: Intensity): string {
 }
 
 /** Bump to force regenerating today's open orders after content updates. */
-export const ORDER_CONTENT_REV = 6
+export const ORDER_CONTENT_REV = 7
 
 const CATEGORY_SLOTS: Record<Intensity, Partial<Record<string, number>>> = {
   doux: { ABDL: 1 },
@@ -205,6 +247,7 @@ export function pickDailyOrders(intensity: Intensity, date: string, seedExtra = 
     used.add(item.text)
   }
 
+  const now = Date.now()
   return picked.slice(0, count).map((o, idx) => ({
     id: `ord-${date}-r${ORDER_CONTENT_REV}-${idx}`,
     text: o.text,
@@ -212,6 +255,8 @@ export function pickDailyOrders(intensity: Intensity, date: string, seedExtra = 
     done: false,
     failed: false,
     date,
+    deadlineAt: orderDeadlineAt(intensity, idx, now),
+    timedOut: false,
   }))
 }
 
