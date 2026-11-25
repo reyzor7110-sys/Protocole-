@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   DISCIPLINE_POOL,
   SERMENT_TEXT,
+  intensityHint,
   intensityLabel,
   pickDailyOrders,
   todayISO,
@@ -333,6 +334,9 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <p className="hint" style={{ marginTop: 10 }}>
+                {intensityHint(oathIntensity)}
+              </p>
             </div>
           </div>
 
@@ -376,6 +380,9 @@ export default function App() {
               <span>Niveau</span>
             </div>
           </div>
+          <p className="hint" style={{ marginTop: -4, marginBottom: 14 }}>
+            {intensityHint(state.intensity)}
+          </p>
 
           {pendingDiscipline.length > 0 && (
             <div className="banner">
