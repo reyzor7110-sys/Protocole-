@@ -75,6 +75,31 @@ export const ORDER_POOL: { text: string; category: string; min: Intensity[] }[] 
   { text: 'Écrire une annonce trash (privée) qui te vend comme objet sexuel à corriger — 8 lignes min.', category: 'Trash', min: ['strict'] },
   { text: 'Te priver de culotte / slip sous les vêtements toute une plage de 2h (chez toi).', category: 'Trash', min: ['strict'] },
   { text: 'Finir la journée à genoux, cul exposé, 5 minutes, en récitant : « Baise-moi le cerveau, pas le droit. »', category: 'Trash', min: ['strict'] },
+
+  // ABDL doux+
+  { text: 'Porter une couche (ou équivalent) 1h chez toi — noter comment tu te sens.', category: 'ABDL', min: ['doux', 'ferme', 'strict'] },
+  { text: '10 minutes avec tétine / sucette, sans téléphone, chrono visible.', category: 'ABDL', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Boire au biberon / gobelet « little » 200 ml minimum, sans se précipiter.', category: 'ABDL', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Écrire 6 phrases : pourquoi tu obéis comme un·e petit·e soumis·e adulte.', category: 'ABDL', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Coloriage / gribouillage 15 minutes, puis montrer (privé) ta « preuve ».', category: 'ABDL', min: ['doux', 'ferme', 'strict'] },
+
+  // ABDL ferme+
+  { text: 'Couche obligatoire 3h : toilettes interdites, tu utilises la couche si besoin.', category: 'ABDL', min: ['ferme', 'strict'] },
+  { text: 'Te changer toi-même en rituel : à plat dos, compter à voix haute, dire merci.', category: 'ABDL', min: ['ferme', 'strict'] },
+  { text: 'Parler « little » 20 minutes (phrases simples) — noter 5 phrases dites.', category: 'ABDL', min: ['ferme', 'strict'] },
+  { text: 'Ramper 5 minutes jusqu’à un objectif, tétine en bouche, sans te relever.', category: 'ABDL', min: ['ferme', 'strict'] },
+  { text: 'Sieste « little » 20 minutes : couche + tétine, alarme, pas d’écran.', category: 'ABDL', min: ['ferme', 'strict'] },
+  { text: 'Check couche : te toucher / te regarder 1 minute et dire « couche pleine ou propre ».', category: 'ABDL', min: ['ferme', 'strict'] },
+
+  // ABDL strict
+  { text: 'Journée (ou plage 6h) en couche : zéro toilette, tu mouilles / tu assumes.', category: 'ABDL', min: ['strict'] },
+  { text: 'Rester en couche mouillée 30 minutes avant de te changer — chrono + confession.', category: 'ABDL', min: ['strict'] },
+  { text: 'Te faire « punir » little : corner 10 minutes, couche, tétine, visage au mur.', category: 'ABDL', min: ['strict'] },
+  { text: 'Écrire 15 fois : « Je suis un bébé adulte qui porte des couches et qui obéit. »', category: 'ABDL', min: ['strict'] },
+  { text: 'Dîner / collation au biberon uniquement pour un repas, assis·e par terre.', category: 'ABDL', min: ['strict'] },
+  { text: 'Couche + body / pyjama little 2h ; te regarder et te traiter de petit·e chiotte.', category: 'ABDL', min: ['strict'] },
+  { text: 'Mouiller volontairement ta couche, applaudir 5 fois, rester 15 minutes dedans.', category: 'ABDL', min: ['strict'] },
+  { text: 'Journal ABDL : 12 lignes sur ta régression, ta honte et pourquoi tu restes.', category: 'ABDL', min: ['strict'] },
 ]
 
 export const DISCIPLINE_POOL: { text: string; min: Intensity[] }[] = [
@@ -100,6 +125,10 @@ export const DISCIPLINE_POOL: { text: string; min: Intensity[] }[] = [
   { text: 'Edge trash 6 minutes (gros mots obligatoires), stop net, pas de jouissance.', min: ['strict'] },
   { text: '10 minutes à quatre pattes, front au sol, te traiter de chienne à chaque respiration longue.', min: ['strict'] },
   { text: 'Te claquer les fesses 30 fois, puis rester exposé·e 3 minutes sans te toucher.', min: ['strict'] },
+  { text: '1h de couche forcée + tétine ; toilettes interdites.', min: ['ferme', 'strict'] },
+  { text: 'Corner little 15 minutes : couche, nez au mur, tétine, chrono.', min: ['ferme', 'strict'] },
+  { text: 'Mouiller ta couche, rester 20 minutes, te changer en te traitant de bébé qui a merdé.', min: ['strict'] },
+  { text: 'Écrire 25 fois : « Couche. Obéissance. Je suis petit·e et corrigé·e. »', min: ['strict'] },
 ]
 
 export function pickDiscipline(intensity: Intensity, seed: string): string {
@@ -126,19 +155,19 @@ export function intensityLabel(i: Intensity): string {
 
 export function intensityHint(i: Intensity): string {
   return {
-    doux: 'Cadre ferme, humiliation douce.',
-    ferme: 'Contrôle sexuel, rabaissement, ordres trash.',
-    strict: 'Trash sadique, privation, humiliation crue.',
+    doux: 'Cadre ferme, ABDL doux, humiliation légère.',
+    ferme: 'Trash, ABDL, contrôle et rabaissement.',
+    strict: 'Trash + ABDL sadiques, privation, humiliation crue.',
   }[i]
 }
 
 /** Bump to force regenerating today's open orders after content updates. */
-export const ORDER_CONTENT_REV = 5
+export const ORDER_CONTENT_REV = 6
 
-const TRASH_SLOTS: Record<Intensity, number> = {
-  doux: 0,
-  ferme: 2,
-  strict: 3,
+const CATEGORY_SLOTS: Record<Intensity, Partial<Record<string, number>>> = {
+  doux: { ABDL: 1 },
+  ferme: { Trash: 1, ABDL: 1 },
+  strict: { Trash: 2, ABDL: 2 },
 }
 
 function shuffleBySeed<T extends { text: string }>(list: T[], seed: string): T[] {
@@ -149,21 +178,34 @@ export function pickDailyOrders(intensity: Intensity, date: string, seedExtra = 
   const pool = ORDER_POOL.filter((o) => o.min.includes(intensity))
   const count = INTENSITY_COUNT[intensity]
   const seed = hash(`${date}:${intensity}:${ORDER_CONTENT_REV}:${seedExtra}`)
-  const trashWanted = Math.min(TRASH_SLOTS[intensity], count)
-  const trashPool = shuffleBySeed(
-    pool.filter((o) => o.category === 'Trash'),
-    `${seed}:trash`,
-  )
+  const slots = CATEGORY_SLOTS[intensity]
+  const reservedCats = Object.keys(slots)
+  const picked: typeof pool = []
+  const used = new Set<string>()
+
+  for (const cat of reservedCats) {
+    const want = Math.min(slots[cat] ?? 0, Math.max(0, count - picked.length))
+    const catPool = shuffleBySeed(
+      pool.filter((o) => o.category === cat && !used.has(o.text)),
+      `${seed}:${cat}`,
+    )
+    for (const item of catPool.slice(0, want)) {
+      picked.push(item)
+      used.add(item.text)
+    }
+  }
+
   const otherPool = shuffleBySeed(
-    pool.filter((o) => o.category !== 'Trash'),
+    pool.filter((o) => !used.has(o.text)),
     `${seed}:other`,
   )
-  const picked = [
-    ...trashPool.slice(0, trashWanted),
-    ...otherPool.slice(0, Math.max(0, count - trashWanted)),
-  ].slice(0, count)
+  for (const item of otherPool) {
+    if (picked.length >= count) break
+    picked.push(item)
+    used.add(item.text)
+  }
 
-  return picked.map((o, idx) => ({
+  return picked.slice(0, count).map((o, idx) => ({
     id: `ord-${date}-r${ORDER_CONTENT_REV}-${idx}`,
     text: o.text,
     category: o.category,
