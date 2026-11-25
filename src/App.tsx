@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  DISCIPLINE_POOL,
   SERMENT_TEXT,
   intensityHint,
   intensityLabel,
   pickDailyOrders,
+  pickDiscipline,
   todayISO,
   uid,
 } from './data'
@@ -39,7 +39,7 @@ function ensureDailyOrders(state: AppState): AppState {
       const penalty = unfinished.length * 6
       const disciplines: DisciplineEntry[] = unfinished.map((o) => ({
         id: uid('dis'),
-        text: DISCIPLINE_POOL[Math.abs(hash(o.id)) % DISCIPLINE_POOL.length],
+        text: pickDiscipline(next.intensity, o.id),
         reason: `Ordre non tenu : ${o.text}`,
         done: false,
         createdAt: new Date().toISOString(),
@@ -70,12 +70,6 @@ function shiftDate(iso: string, delta: number): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
-}
-
-function hash(s: string): number {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
-  return h
 }
 
 function formatWhen(iso: string): string {
@@ -169,24 +163,26 @@ export default function App() {
 
   function failOrder(order: Order) {
     if (order.done || order.failed) return
-    const punishment = DISCIPLINE_POOL[Math.abs(hash(order.id + Date.now())) % DISCIPLINE_POOL.length]
-    patch((s) => ({
-      ...s,
-      orders: s.orders.map((o) => (o.id === order.id ? { ...o, failed: true } : o)),
-      score: clampScore(s.score - 8),
-      streak: 0,
-      totalFailed: s.totalFailed + 1,
-      disciplines: [
-        {
-          id: uid('dis'),
-          text: punishment,
-          reason: `Manquement : ${order.text}`,
-          done: false,
-          createdAt: new Date().toISOString(),
-        },
-        ...s.disciplines,
-      ].slice(0, 40),
-    }))
+    patch((s) => {
+      const punishment = pickDiscipline(s.intensity, `${order.id}:${Date.now()}`)
+      return {
+        ...s,
+        orders: s.orders.map((o) => (o.id === order.id ? { ...o, failed: true } : o)),
+        score: clampScore(s.score - 8),
+        streak: 0,
+        totalFailed: s.totalFailed + 1,
+        disciplines: [
+          {
+            id: uid('dis'),
+            text: punishment,
+            reason: `Manquement : ${order.text}`,
+            done: false,
+            createdAt: new Date().toISOString(),
+          },
+          ...s.disciplines,
+        ].slice(0, 40),
+      }
+    })
     setScreen('discipline')
   }
 
@@ -273,20 +269,22 @@ export default function App() {
   }
 
   function assignSelfDiscipline() {
-    const text = DISCIPLINE_POOL[Math.floor(Math.random() * DISCIPLINE_POOL.length)]
-    patch((s) => ({
-      ...s,
-      disciplines: [
-        {
-          id: uid('dis'),
-          text,
-          reason: 'Discipline volontaire',
-          done: false,
-          createdAt: new Date().toISOString(),
-        },
-        ...s.disciplines,
-      ].slice(0, 40),
-    }))
+    patch((s) => {
+      const text = pickDiscipline(s.intensity, `vol:${Date.now()}:${Math.random()}`)
+      return {
+        ...s,
+        disciplines: [
+          {
+            id: uid('dis'),
+            text,
+            reason: 'Discipline volontaire',
+            done: false,
+            createdAt: new Date().toISOString(),
+          },
+          ...s.disciplines,
+        ].slice(0, 40),
+      }
+    })
   }
 
   function resetAll() {
@@ -607,7 +605,9 @@ export default function App() {
         <div className="screen" key="discipline">
           <div className="topbar">
             <div className="brand">Discipline</div>
-            <div className="meta">{pendingDiscipline.length} ouvertes</div>
+            <div className="meta">
+              {pendingDiscipline.length} ouverte{pendingDiscipline.length === 1 ? '' : 's'}
+            </div>
           </div>
           <p className="hint">Les manquements se paient. Accomplis, puis coche.</p>
           <button type="button" className="btn btn-ghost" onClick={assignSelfDiscipline}>

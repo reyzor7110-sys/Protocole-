@@ -56,26 +56,32 @@ export const ORDER_POOL: { text: string; category: string; min: Intensity[] }[] 
   { text: 'Finir la soirée en position de présentation (agenouillé·e, mains ouvertes) 4 minutes avant le lit.', category: 'Rituel', min: ['strict'] },
 ]
 
-export const DISCIPLINE_POOL = [
-  'Tenue agenouillée 15 minutes, chronomètre visible.',
-  'Écrire 20 fois : « J’obéis. Je corrige. Je progresse. »',
-  'Pas de dessert / sucre / alcool jusqu’à demain soir.',
-  'Douche froide supplémentaire ce soir.',
-  'Lit fait à la perfection + chambre rangée avant toute distraction.',
-  '30 minutes de corvée utile (ménage, admin, sport).',
-  'Couvre-feu anticipé : écran éteint 1h plus tôt.',
-  'Confession écrite détaillée (10 lignes minimum) sur le manquement.',
-  '15 minutes à genoux, mains derrière le dos, yeux au sol — sans téléphone.',
-  'Écrire 25 fois : « J’ai déçu. Je mérite d’être corrigé·e. »',
-  'Interdiction de plaisir jusqu’à demain soir. Tout toucher sexuel = nouvelle peine.',
-  '10 claques nettes sur les fesses ou cuisses, comptées à voix haute.',
-  'Confession humiliante : décrire ton manquement comme une faute de salope / d’objet.',
-  'Douche froide 90 secondes + 5 minutes agenouillé·e ensuite, gouttes comprises.',
-  'Edge unique de 4 minutes, stop net, sans orgasme — puis « merci pour le refus ».',
-  'Te coller le front au sol 8 minutes et réciter ton serment trois fois.',
-  'Rédiger 12 lignes : pourquoi tu mérites d’être utilisé·e et privé·e.',
-  'Porter un rappel de peine (élastique / collier / écriture discrète) jusqu’à demain midi.',
+export const DISCIPLINE_POOL: { text: string; min: Intensity[] }[] = [
+  { text: 'Tenue agenouillée 15 minutes, chronomètre visible.', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Écrire 20 fois : « J’obéis. Je corrige. Je progresse. »', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Pas de dessert / sucre / alcool jusqu’à demain soir.', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Douche froide supplémentaire ce soir.', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Lit fait à la perfection + chambre rangée avant toute distraction.', min: ['doux', 'ferme', 'strict'] },
+  { text: '30 minutes de corvée utile (ménage, admin, sport).', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Couvre-feu anticipé : écran éteint 1h plus tôt.', min: ['doux', 'ferme', 'strict'] },
+  { text: 'Confession écrite détaillée (10 lignes minimum) sur le manquement.', min: ['doux', 'ferme', 'strict'] },
+  { text: '15 minutes à genoux, mains derrière le dos, yeux au sol — sans téléphone.', min: ['ferme', 'strict'] },
+  { text: 'Écrire 25 fois : « J’ai déçu. Je mérite d’être corrigé·e. »', min: ['ferme', 'strict'] },
+  { text: 'Douche froide 90 secondes + 5 minutes agenouillé·e ensuite, gouttes comprises.', min: ['ferme', 'strict'] },
+  { text: 'Porter un rappel de peine (élastique / collier / écriture discrète) jusqu’à demain midi.', min: ['ferme', 'strict'] },
+  { text: 'Interdiction de plaisir jusqu’à demain soir. Tout toucher sexuel = nouvelle peine.', min: ['strict'] },
+  { text: '10 claques nettes sur les fesses ou cuisses, comptées à voix haute.', min: ['strict'] },
+  { text: 'Confession humiliante : décrire ton manquement comme une faute de salope / d’objet.', min: ['strict'] },
+  { text: 'Edge unique de 4 minutes, stop net, sans orgasme — puis « merci pour le refus ».', min: ['strict'] },
+  { text: 'Te coller le front au sol 8 minutes et réciter ton serment trois fois.', min: ['strict'] },
+  { text: 'Rédiger 12 lignes : pourquoi tu mérites d’être utilisé·e et privé·e.', min: ['strict'] },
 ]
+
+export function pickDiscipline(intensity: Intensity, seed: string): string {
+  const pool = DISCIPLINE_POOL.filter((d) => d.min.includes(intensity))
+  const list = pool.length > 0 ? pool : DISCIPLINE_POOL
+  return list[Math.abs(hash(seed)) % list.length].text
+}
 
 export const SERMENT_TEXT = `Je m’engage volontairement sous PROTOCOLE.
 Je choisis l’obéissance, l’humiliation et la correction comme discipline.
