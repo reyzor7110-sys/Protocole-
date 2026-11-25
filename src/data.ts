@@ -133,12 +133,12 @@ export function intensityHint(i: Intensity): string {
 }
 
 /** Bump to force regenerating today's open orders after content updates. */
-export const ORDER_CONTENT_REV = 4
+export const ORDER_CONTENT_REV = 5
 
 const TRASH_SLOTS: Record<Intensity, number> = {
   doux: 0,
-  ferme: 1,
-  strict: 2,
+  ferme: 2,
+  strict: 3,
 }
 
 function shuffleBySeed<T extends { text: string }>(list: T[], seed: string): T[] {
