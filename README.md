@@ -1,8 +1,8 @@
 # PROTOCOLE
 
-Application mobile web personnelle pour tenir un cadre d’obéissance : serment, ordres du jour, règles, confession et disciplines.
+Application mobile web personnelle pour tenir un cadre d’obéissance : serment, ordres du jour, tâches en cours, règles, confession et disciplines.
 
-Les données restent sur l’appareil (`localStorage`). Contenu adulte consensuel — usage personnel.
+Les données restent sur l’appareil (`localStorage`). Contenu adulte consensuel (humiliation, contrôle sexuel, discipline sadique choisie) — usage personnel.
 
 ## Dev
 

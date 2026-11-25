@@ -1,5 +1,5 @@
 import { DEFAULT_RULES, todayISO, uid } from './data'
-import type { AppState } from './types'
+import type { AppState, Rule } from './types'
 
 const KEY = 'protocole.v1'
 
@@ -19,6 +19,7 @@ export function createInitialState(): AppState {
       createdAt: now,
     })),
     orders: [],
+    ongoing: [],
     confessions: [],
     disciplines: [],
     totalCompleted: 0,
@@ -26,12 +27,33 @@ export function createInitialState(): AppState {
   }
 }
 
+function mergeLockedRules(existing: Rule[] | undefined): Rule[] {
+  const now = todayISO()
+  const current = existing ?? []
+  const unlocked = current.filter((r) => !r.locked)
+  const byText = new Map(current.filter((r) => r.locked).map((r) => [r.text, r]))
+  const locked = DEFAULT_RULES.filter((r) => r.locked).map((r) => {
+    const prev = byText.get(r.text)
+    return prev ?? { ...r, id: uid('rule'), createdAt: now }
+  })
+  return [...locked, ...unlocked]
+}
+
 export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return createInitialState()
-    const parsed = JSON.parse(raw) as AppState
-    return { ...createInitialState(), ...parsed }
+    const parsed = JSON.parse(raw) as Partial<AppState>
+    const base = createInitialState()
+    return {
+      ...base,
+      ...parsed,
+      rules: mergeLockedRules(parsed.rules),
+      orders: parsed.orders ?? base.orders,
+      ongoing: parsed.ongoing ?? base.ongoing,
+      confessions: parsed.confessions ?? base.confessions,
+      disciplines: parsed.disciplines ?? base.disciplines,
+    }
   } catch {
     return createInitialState()
   }
