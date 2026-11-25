@@ -41,6 +41,15 @@ export const ORDER_POOL: { text: string; category: string; min: Intensity[] }[] 
   { text: 'Masturbation contrôlée 5 minutes max, sans orgasme — puis te remercier d’avoir été privé·e.', category: 'Sexualité', min: ['ferme', 'strict'] },
   { text: 'Photographier (privé, local) ta posture agenouillée et la décrire comme une preuve d’obéissance.', category: 'Humiliation', min: ['ferme', 'strict'] },
 
+  // Trash ferme+
+  { text: 'Te branler / te caresser 3 minutes pile, sans jouir, en te traitant de pute à voix haute.', category: 'Trash', min: ['ferme', 'strict'] },
+  { text: 'Écrire 10 fois : « Je suis une chienne en chaleur qui n’a pas le droit de jouir. »', category: 'Trash', min: ['ferme', 'strict'] },
+  { text: 'Lécher ton miroir / ton sol (propre) 1 minute à quatre pattes, puis dire merci.', category: 'Trash', min: ['ferme', 'strict'] },
+  { text: 'Te mettre à poil 10 minutes et te filmer / te regarder comme une salope à vendre (privé).', category: 'Trash', min: ['ferme', 'strict'] },
+  { text: 'Noter chaque fois que tu as eu envie de baiser aujourd’hui — et ce que tu as fait à la place.', category: 'Trash', min: ['ferme', 'strict'] },
+  { text: 'Te gifler la gueule 4 fois (légères) en disant : « Ta gueule, tu obéis. »', category: 'Trash', min: ['ferme', 'strict'] },
+  { text: 'Passer 8 minutes cul en l’air / poitrine au sol, sans te toucher, chrono visible.', category: 'Trash', min: ['ferme', 'strict'] },
+
   // Strict
   { text: 'Aucune masturbation / orgasme sans l’avoir noté comme faveur reçue.', category: 'Contrôle', min: ['strict'] },
   { text: 'Parler à voix basse et mesurée toute la journée.', category: 'Présentation', min: ['strict'] },
@@ -54,6 +63,18 @@ export const ORDER_POOL: { text: string; category: string; min: Intensity[] }[] 
   { text: 'Coucher face au sol 5 minutes, mains croisées dans le dos, en récitant ton serment.', category: 'Douleur', min: ['strict'] },
   { text: 'Noter chaque excitation de la journée et ce que tu aurais dû faire à la place (service, silence, peine).', category: 'Contrôle', min: ['strict'] },
   { text: 'Finir la soirée en position de présentation (agenouillé·e, mains ouvertes) 4 minutes avant le lit.', category: 'Rituel', min: ['strict'] },
+
+  // Trash strict
+  { text: 'Te doigter / te branler jusqu’au bord 3 fois, sans jouir, en suppliant à voix haute.', category: 'Trash', min: ['strict'] },
+  { text: 'Écrire 20 fois : « Je suis un trou. Je sers. Je jouis seulement si on me le permet. »', category: 'Trash', min: ['strict'] },
+  { text: 'Bouche ouverte, langue dehors, 3 minutes face miroir — te traiter de pute avide.', category: 'Trash', min: ['strict'] },
+  { text: 'Te mettre un jouet / doigts 12 minutes, rythme lent, interdiction de jouir, merci à la fin.', category: 'Trash', min: ['strict'] },
+  { text: 'Spit play solo : cracher dans ta main, te tartiner le visage, rester comme ça 2 minutes.', category: 'Trash', min: ['strict'] },
+  { text: 'À quatre pattes 10 minutes, aboyer / geindre 10 fois, puis front au sol.', category: 'Trash', min: ['strict'] },
+  { text: 'Te claquer les fesses 20 fois nettes, compter sale (« une pour la chienne… »).', category: 'Trash', min: ['strict'] },
+  { text: 'Écrire une annonce trash (privée) qui te vend comme objet sexuel à corriger — 8 lignes min.', category: 'Trash', min: ['strict'] },
+  { text: 'Te priver de culotte / slip sous les vêtements toute une plage de 2h (chez toi).', category: 'Trash', min: ['strict'] },
+  { text: 'Finir la journée à genoux, cul exposé, 5 minutes, en récitant : « Baise-moi le cerveau, pas le droit. »', category: 'Trash', min: ['strict'] },
 ]
 
 export const DISCIPLINE_POOL: { text: string; min: Intensity[] }[] = [
@@ -75,6 +96,10 @@ export const DISCIPLINE_POOL: { text: string; min: Intensity[] }[] = [
   { text: 'Edge unique de 4 minutes, stop net, sans orgasme — puis « merci pour le refus ».', min: ['strict'] },
   { text: 'Te coller le front au sol 8 minutes et réciter ton serment trois fois.', min: ['strict'] },
   { text: 'Rédiger 12 lignes : pourquoi tu mérites d’être utilisé·e et privé·e.', min: ['strict'] },
+  { text: 'Écrire 30 fois : « Je suis une pute qui a merdé. Je rampe. »', min: ['strict'] },
+  { text: 'Edge trash 6 minutes (gros mots obligatoires), stop net, pas de jouissance.', min: ['strict'] },
+  { text: '10 minutes à quatre pattes, front au sol, te traiter de chienne à chaque respiration longue.', min: ['strict'] },
+  { text: 'Te claquer les fesses 30 fois, puis rester exposé·e 3 minutes sans te toucher.', min: ['strict'] },
 ]
 
 export function pickDiscipline(intensity: Intensity, seed: string): string {
@@ -102,28 +127,57 @@ export function intensityLabel(i: Intensity): string {
 export function intensityHint(i: Intensity): string {
   return {
     doux: 'Cadre ferme, humiliation douce.',
-    ferme: 'Contrôle sexuel et rabaissement assumés.',
-    strict: 'Humiliation sadique, privation, douleur choisie.',
+    ferme: 'Contrôle sexuel, rabaissement, ordres trash.',
+    strict: 'Trash sadique, privation, humiliation crue.',
   }[i]
+}
+
+/** Bump to force regenerating today's open orders after content updates. */
+export const ORDER_CONTENT_REV = 4
+
+const TRASH_SLOTS: Record<Intensity, number> = {
+  doux: 0,
+  ferme: 1,
+  strict: 2,
+}
+
+function shuffleBySeed<T extends { text: string }>(list: T[], seed: string): T[] {
+  return [...list].sort((a, b) => hash(`${seed}:${a.text}`) - hash(`${seed}:${b.text}`))
 }
 
 export function pickDailyOrders(intensity: Intensity, date: string, seedExtra = 0) {
   const pool = ORDER_POOL.filter((o) => o.min.includes(intensity))
   const count = INTENSITY_COUNT[intensity]
-  const seed = hash(`${date}:${intensity}:${seedExtra}`)
-  const shuffled = [...pool].sort((a, b) => {
-    const ha = hash(`${seed}:${a.text}`)
-    const hb = hash(`${seed}:${b.text}`)
-    return ha - hb
-  })
-  return shuffled.slice(0, count).map((o, idx) => ({
-    id: `ord-${date}-${idx}`,
+  const seed = hash(`${date}:${intensity}:${ORDER_CONTENT_REV}:${seedExtra}`)
+  const trashWanted = Math.min(TRASH_SLOTS[intensity], count)
+  const trashPool = shuffleBySeed(
+    pool.filter((o) => o.category === 'Trash'),
+    `${seed}:trash`,
+  )
+  const otherPool = shuffleBySeed(
+    pool.filter((o) => o.category !== 'Trash'),
+    `${seed}:other`,
+  )
+  const picked = [
+    ...trashPool.slice(0, trashWanted),
+    ...otherPool.slice(0, Math.max(0, count - trashWanted)),
+  ].slice(0, count)
+
+  return picked.map((o, idx) => ({
+    id: `ord-${date}-r${ORDER_CONTENT_REV}-${idx}`,
     text: o.text,
     category: o.category,
     done: false,
     failed: false,
     date,
   }))
+}
+
+export function ordersMatchContentRev(orders: { id: string }[], date: string): boolean {
+  const todays = orders.filter((o) => o.id.startsWith(`ord-${date}-`))
+  if (todays.length === 0) return false
+  const marker = `-r${ORDER_CONTENT_REV}-`
+  return todays.every((o) => o.id.includes(marker))
 }
 
 function hash(s: string): number {

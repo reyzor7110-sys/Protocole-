@@ -3,6 +3,7 @@ import {
   SERMENT_TEXT,
   intensityHint,
   intensityLabel,
+  ordersMatchContentRev,
   pickDailyOrders,
   pickDiscipline,
   todayISO,
@@ -23,17 +24,26 @@ import type {
 function ensureDailyOrders(state: AppState): AppState {
   const today = todayISO()
   const todays = state.orders.filter((o) => o.date === today)
-  if (todays.length > 0) {
+  const revOk = ordersMatchContentRev(todays, today)
+  if (todays.length > 0 && revOk) {
     return { ...state, lastActiveDate: today }
   }
 
   let next = { ...state }
+  // Drop stale same-day orders when content rev changes (keep history of other days).
+  if (todays.length > 0 && !revOk) {
+    next = {
+      ...next,
+      orders: next.orders.filter((o) => o.date !== today),
+    }
+  }
+
   const yesterday = shiftDate(today, -1)
-  const yOrders = state.orders.filter((o) => o.date === yesterday)
-  if (yOrders.length > 0) {
+  const yOrders = next.orders.filter((o) => o.date === yesterday)
+  if (todays.length === 0 && yOrders.length > 0) {
     const unfinished = yOrders.filter((o) => !o.done && !o.failed)
     if (unfinished.length > 0) {
-      const failedMarked = state.orders.map((o) =>
+      const failedMarked = next.orders.map((o) =>
         o.date === yesterday && !o.done && !o.failed ? { ...o, failed: true } : o,
       )
       const penalty = unfinished.length * 6
