@@ -16,6 +16,10 @@ export interface Order {
   done: boolean
   failed: boolean
   date: string
+  /** ISO deadline — à 0 → échec + peine sévère */
+  deadlineAt: string | null
+  /** true si l’échec vient du timer (peine sévère déjà appliquée) */
+  timedOut?: boolean
 }
 
 export interface Ongoing {

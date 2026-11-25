@@ -460,12 +460,78 @@ h3,
   color: white;
 }
 
+.item-body .cat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
 .item-body .cat {
   font-size: 0.65rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--mute);
-  margin-bottom: 4px;
+}
+
+.order-timer {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.order-timer.urgent {
+  color: var(--warn);
+}
+
+.order-timer.critical {
+  color: var(--danger);
+  animation: pulse-timer 1s ease-in-out infinite;
+}
+
+.order-timer.expired {
+  color: var(--danger);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+}
+
+.item.timer-urgent {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+}
+
+.item.timer-critical {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  background: color-mix(in srgb, var(--danger) 6%, white);
+}
+
+.item.timed-out {
+  border-color: color-mix(in srgb, var(--seal) 50%, var(--line));
+}
+
+.banner-severe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--line));
+  background: color-mix(in srgb, var(--seal) 14%, white);
+}
+
+@keyframes pulse-timer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 .item-body p {

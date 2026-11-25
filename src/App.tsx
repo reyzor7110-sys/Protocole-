@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   SERMENT_TEXT,
+  formatCountdown,
   intensityHint,
   intensityLabel,
+  orderDeadlineAt,
   ordersMatchContentRev,
   pickDailyOrders,
   pickDiscipline,
+  pickSevereDiscipline,
   todayISO,
   uid,
 } from './data'
@@ -66,11 +69,72 @@ function ensureDailyOrders(state: AppState): AppState {
   }
 
   const fresh = pickDailyOrders(next.intensity, today)
-  return {
+  return applyExpiredTimers({
     ...next,
     orders: [...fresh, ...next.orders].slice(0, 90),
     lastActiveDate: today,
+  })
+}
+
+/** Marque les ordres dont le timer est à 0 et inflige une peine sévère. */
+function applyExpiredTimers(state: AppState, now = Date.now()): AppState {
+  const expired = state.orders.filter(
+    (o) =>
+      !o.done &&
+      !o.failed &&
+      o.deadlineAt &&
+      new Date(o.deadlineAt).getTime() <= now,
+  )
+  if (expired.length === 0) return state
+
+  const expiredIds = new Set(expired.map((o) => o.id))
+  const disciplines: DisciplineEntry[] = expired.map((o) => ({
+    id: uid('dis'),
+    text: pickSevereDiscipline(`timer:${o.id}:${o.deadlineAt}`),
+    reason: `Timer écoulé — peine sévère : ${o.text}`,
+    done: false,
+    createdAt: new Date().toISOString(),
+  }))
+
+  return {
+    ...state,
+    orders: state.orders.map((o) =>
+      expiredIds.has(o.id) ? { ...o, failed: true, timedOut: true } : o,
+    ),
+    score: clampScore(state.score - expired.length * 15),
+    streak: 0,
+    totalFailed: state.totalFailed + expired.length,
+    disciplines: [...disciplines, ...state.disciplines].slice(0, 40),
   }
+}
+
+function ensureOrderDeadlines(state: AppState): AppState {
+  let changed = false
+  const today = todayISO()
+  const openToday = state.orders.filter(
+    (o) => o.date === today && !o.done && !o.failed,
+  )
+  const orders = state.orders.map((o) => {
+    if (o.done || o.failed) {
+      if (o.deadlineAt === undefined) {
+        changed = true
+        return { ...o, deadlineAt: o.deadlineAt ?? null, timedOut: o.timedOut ?? false }
+      }
+      return o
+    }
+    if (o.deadlineAt) return o
+    changed = true
+    const idx = Math.max(
+      0,
+      openToday.findIndex((x) => x.id === o.id),
+    )
+    return {
+      ...o,
+      deadlineAt: orderDeadlineAt(state.intensity, idx),
+      timedOut: false,
+    }
+  })
+  return changed ? { ...state, orders } : state
 }
 
 function shiftDate(iso: string, delta: number): string {
@@ -95,18 +159,48 @@ function formatWhen(iso: string): string {
 }
 
 export default function App() {
-  const [state, setState] = useState<AppState>(() => ensureDailyOrders(loadState()))
+  const [state, setState] = useState<AppState>(() =>
+    applyExpiredTimers(ensureOrderDeadlines(ensureDailyOrders(loadState()))),
+  )
   const [screen, setScreen] = useState<Screen>('home')
+  const [now, setNow] = useState(() => Date.now())
   const [flashId, setFlashId] = useState<string | null>(null)
   const [draftRule, setDraftRule] = useState('')
   const [draftOngoing, setDraftOngoing] = useState('')
   const [draftConfession, setDraftConfession] = useState('')
   const [oathName, setOathName] = useState('')
   const [oathIntensity, setOathIntensity] = useState<Intensity>('ferme')
+  const [timerAlert, setTimerAlert] = useState<string | null>(null)
 
   useEffect(() => {
     saveState(state)
   }, [state])
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      const t = Date.now()
+      setNow(t)
+      setState((prev) => {
+        const next = applyExpiredTimers(prev, t)
+        if (next === prev) return prev
+        const newly = next.orders.filter(
+          (o) => o.timedOut && !prev.orders.find((x) => x.id === o.id)?.timedOut,
+        )
+        if (newly.length > 0) {
+          queueMicrotask(() => {
+            setTimerAlert(
+              newly.length === 1
+                ? 'Timer écoulé — peine sévère infligée.'
+                : `${newly.length} timers écoulés — peines sévères infligées.`,
+            )
+            setScreen('discipline')
+          })
+        }
+        return next
+      })
+    }, 1000)
+    return () => window.clearInterval(tick)
+  }, [])
 
   const today = todayISO()
   const todaysOrders = useMemo(
@@ -392,6 +486,15 @@ export default function App() {
             {intensityHint(state.intensity)}
           </p>
 
+          {timerAlert && (
+            <div className="banner banner-severe">
+              <strong>Timer</strong> — {timerAlert}
+              <button type="button" className="mini" onClick={() => setTimerAlert(null)}>
+                OK
+              </button>
+            </div>
+          )}
+
           {pendingDiscipline.length > 0 && (
             <div className="banner">
               <strong>{pendingDiscipline.length} discipline(s)</strong> en attente — va les régler.
@@ -431,6 +534,7 @@ export default function App() {
               <OrderRow
                 key={o.id}
                 order={o}
+                now={now}
                 flash={flashId === o.id}
                 onDone={() => completeOrder(o)}
                 onFail={() => failOrder(o)}
@@ -529,12 +633,20 @@ export default function App() {
               {doneToday}/{todaysOrders.length}
             </div>
           </div>
-          <p className="hint">Valide avant minuit. Un manquement génère une discipline.</p>
+          <p className="hint">
+            Chaque ordre a un timer. À 0 : échec automatique et peine très sévère. Valide avant.
+          </p>
+          {timerAlert && (
+            <div className="banner banner-severe">
+              <strong>Timer</strong> — {timerAlert}
+            </div>
+          )}
           <div className="card-list">
             {todaysOrders.map((o) => (
               <OrderRow
                 key={o.id}
                 order={o}
+                now={now}
                 flash={flashId === o.id}
                 onDone={() => completeOrder(o)}
                 onFail={() => failOrder(o)}
@@ -711,20 +823,28 @@ function OngoingRow({
 
 function OrderRow({
   order,
+  now,
   flash,
   onDone,
   onFail,
 }: {
   order: Order
+  now: number
   flash: boolean
   onDone: () => void
   onFail: () => void
 }) {
+  const remaining = order.deadlineAt ? new Date(order.deadlineAt).getTime() - now : null
+  const urgent = remaining !== null && remaining > 0 && remaining < 15 * 60_000
+  const critical = remaining !== null && remaining > 0 && remaining < 5 * 60_000
+
   const cls = [
     'item',
     order.done ? 'done' : '',
     order.failed ? 'failed' : '',
+    order.timedOut ? 'timed-out' : '',
     flash ? 'just-done' : '',
+    critical ? 'timer-critical' : urgent ? 'timer-urgent' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -741,7 +861,19 @@ function OrderRow({
         {order.done ? '✓' : order.failed ? '×' : ''}
       </button>
       <div className="item-body">
-        <div className="cat">{order.category}</div>
+        <div className="cat-row">
+          <div className="cat">{order.category}</div>
+          {!order.done && !order.failed && remaining !== null && (
+            <div
+              className={`order-timer ${critical ? 'critical' : urgent ? 'urgent' : ''}`}
+              aria-label="Temps restant"
+            >
+              {formatCountdown(remaining)}
+            </div>
+          )}
+          {order.timedOut && <div className="order-timer expired">Timer · peine sévère</div>}
+          {order.failed && !order.timedOut && <div className="order-timer expired">Manqué</div>}
+        </div>
         <p>{order.text}</p>
       </div>
       {!order.done && !order.failed && (
